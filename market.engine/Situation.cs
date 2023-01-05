@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace market.engine
 {
-    public enum Sentiment
+    public enum Situation
     {
         Bull = 0,
         Bear = 1

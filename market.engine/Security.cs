@@ -13,10 +13,17 @@ namespace market.engine
         public readonly int Yield;
         public readonly string Description;
 
+        public static int Count { get { return All.Length; } }
+
         public static Security ByName(SecurityNames name)
         {
             if ((int)name < 0 || (int)name > All.Length) throw new Exception("invalid security name");
             return All[(int)name];
+        }
+
+        public static IEnumerable<Security> EnumerateAll()
+        {
+            foreach(var security in All) yield return security;
         }
 
         #region private

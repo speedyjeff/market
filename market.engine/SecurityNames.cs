@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace market.engine
 {
-    public enum Securities
+    public enum SecurityNames
     {
         CentralCityMunicipalBonds = 0,
         GrowthCorporationOfAmerica = 1,
