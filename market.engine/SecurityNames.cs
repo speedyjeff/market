@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace market.engine
+﻿namespace market.engine
 {
     public enum SecurityNames
     {
@@ -17,6 +11,7 @@ namespace market.engine
         TriCityTransportCompany = 6,
         UnitedAutoCompany = 7,
         UraniumEnterprisesInc = 8,
-        ValleyPowerAndLightCompany = 9
+        ValleyPowerAndLightCompany = 9,
+        None = 10
     }
 }

@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace market.engine
+﻿namespace market.engine
 {
-    public struct MarketPrices
+    public struct SecuritiesContainer
     {
+        public SecuritiesContainer()
+        {
+            Deltas = new int[Security.Count];
+        }
+        
         public int ByName(SecurityNames name)
         {
             if (Deltas == null) throw new Exception("not initialized");
@@ -15,10 +14,12 @@ namespace market.engine
             return Deltas[(int)name];
         }
 
-        #region private internal
-        internal int[] Deltas;
+        #region private
+        private int[] Deltas;
+        #endregion
 
-        internal void Add(MarketPrices other)
+        #region private internal
+        internal void Add(SecuritiesContainer other)
         {
             if (other.Deltas == null) return;
             if (Deltas == null) Deltas = new int[other.Deltas.Length];

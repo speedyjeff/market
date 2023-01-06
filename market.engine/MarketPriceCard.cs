@@ -1,25 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace market.engine
+﻿namespace market.engine
 {
     static class MarketPriceCard
     {
-        public static MarketPrices Generate(Situation sentiment, int rvalue)
+        public static SecuritiesContainer Generate(Situation sentiment, int rvalue)
         {
             if (rvalue < 2 || rvalue > 12) throw new Exception("invalid random value");
             if (sentiment != Situation.Bull && sentiment != Situation.Bear) throw new Exception("invalid sentiment");
 
             // return data from table for this sentiment and rvalue-2
-            var deltas = new int[Deltas.GetLength(0)];
-            for (int i = 0; i < deltas.Length; i++)
+            var sc = new SecuritiesContainer();
+            foreach(var security in Security.EnumerateAll())
             {
-                deltas[i] = Deltas[i][(int)sentiment][rvalue - 2];
+                sc.Add(security.Name, Deltas[(int)security.Name][(int)sentiment][rvalue - 2]);
             }
-            return new MarketPrices() { Deltas = deltas };
+            return sc;
         }
 
         #region private
