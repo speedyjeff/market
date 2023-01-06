@@ -11,6 +11,9 @@
         public int PurchaseDivisor = 10;
         public bool AdjustStartingPrices = false;
         public int InitialCashBalance = 5000;
+        public bool DividendBasedOnMarketPrice = false;
+
+        public bool WithDebugValidation = false;
 
         public MarketConfiguration()
         {

@@ -16,6 +16,8 @@ namespace market.engine.tests
             RandomValuesTest.Distribution();
             RandomValuesTest.Unique();
             RandomValuesTest.Identical();
+            PlayerTest.StaticCostBasis();
+            PlayerTest.VariableCostBasis();
         }
     }
 }

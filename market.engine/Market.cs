@@ -1,16 +1,17 @@
-﻿using market.engine.tests;
-
-namespace market.engine
+﻿namespace market.engine
 {
+    // todo margin
+
     public class Market
     {
         public Market(MarketConfiguration config)
         {
+            Config = config;
+
             // inline validation
-            if (WithDebugValidation) MainTest.Run();
+            if (Config.WithDebugValidation) market.engine.tests.MainTest.Run();
 
             // sanity check the configs
-            Config = config;
             if (Config.LastYear < 1) throw new Exception("invalid max years");
             if (Config.ParValue < 0) throw new Exception("invalid parvalue");
             if (Config.NoDividendPrice < 0) throw new Exception("invalid no dividend price");
@@ -59,7 +60,7 @@ namespace market.engine
                 total += ((long)amount * (long)price);
             }
 
-            if (WithDebugValidation && total < 0) throw new Exception("invalid net worth");
+            if (Config.WithDebugValidation && total < 0) throw new Exception("invalid net worth");
 
             return total;
         }
@@ -111,8 +112,6 @@ namespace market.engine
         private int RandomDiceRollIndex;
         private int[] RandomSituations;
         private int RandomSituationIndex;
-
-        private const bool WithDebugValidation = true;
 
         //
         // State machine
@@ -225,19 +224,20 @@ namespace market.engine
                     var half = (int)Math.Ceiling((float)price / 2f);
                     Prices.Add(security.Name, (-1 * price) + half);
 
-                    if (WithDebugValidation && Prices.ByName(security.Name) != half) throw new Exception("incorrect price");
+                    if (Config.WithDebugValidation && Prices.ByName(security.Name) != half) throw new Exception("incorrect price");
 
                     // double the holdings for player 
                     var amount = My.Holdings.ByName(security.Name);
                     if (amount > 0) My.Holdings.Add(security.Name, amount);
 
-                    if (WithDebugValidation && My.Holdings.ByName(security.Name) != (amount * 2)) throw new Exception("invalid amount");
+                    if (Config.WithDebugValidation && My.Holdings.ByName(security.Name) != (amount * 2)) throw new Exception("invalid amount");
 
                     // add ledger item
                     if (amount > 0)
                     {
                         My.RecordSheet.Add(new LedgerRow()
                         {
+                            Type = LedgerRowType.Split,
                             Year = Year,
                             Name = security.Name,
                             Amount = amount * 2, // split
@@ -255,18 +255,19 @@ namespace market.engine
                     var amount = My.Holdings.ByName(security.Name);
                     if (amount > 0) My.Holdings.Add(security.Name, -1 * amount);
 
-                    if (WithDebugValidation && My.Holdings.ByName(security.Name) != 0) throw new Exception("should be zero");
+                    if (Config.WithDebugValidation && My.Holdings.ByName(security.Name) != 0) throw new Exception("should be zero");
 
                     // reset price to ParValue
                     Prices.Add(security.Name, (-1 * price) + Config.ParValue);
 
-                    if (WithDebugValidation && Prices.ByName(security.Name) != Config.ParValue) throw new Exception("should be parvalue");
+                    if (Config.WithDebugValidation && Prices.ByName(security.Name) != Config.ParValue) throw new Exception("should be parvalue");
 
                     // add ledger item
                     if (amount > 0)
                     {
                         My.RecordSheet.Add(new LedgerRow()
                         {
+                            Type = LedgerRowType.Worthless,
                             Year = Year,
                             Name = security.Name,
                             Amount = 0, // worthless 
@@ -301,17 +302,18 @@ namespace market.engine
                     var cost = (t.Amount * price);
                     My.CashBalance += cost;
 
-                    if (WithDebugValidation && price < 0) throw new Exception("invalid price");
+                    if (Config.WithDebugValidation && price < 0) throw new Exception("invalid price");
 
                     // reduce the amount of shares
                     My.Holdings.Add(t.Security, -1 * t.Amount);
 
-                    if (WithDebugValidation && My.Holdings.ByName(t.Security) != (amount - t.Amount)) throw new Exception("invalid amount");
-                    if (WithDebugValidation && My.Holdings.ByName(t.Security) < 0) throw new Exception("invalid negative amount");
+                    if (Config.WithDebugValidation && My.Holdings.ByName(t.Security) != (amount - t.Amount)) throw new Exception("invalid amount");
+                    if (Config.WithDebugValidation && My.Holdings.ByName(t.Security) < 0) throw new Exception("invalid negative amount");
 
                     // add ledger item
                     My.RecordSheet.Add(new LedgerRow()
                     {
+                        Type = LedgerRowType.Sell,
                         Year = Year,
                         Name = t.Security,
                         Amount = t.Amount,
@@ -347,8 +349,8 @@ namespace market.engine
                     // deduct the amount
                     My.CashBalance -= cost;
 
-                    if (WithDebugValidation && My.CashBalance < 0) throw new Exception("invalid cash balance");
-                    if (WithDebugValidation && My.Holdings.ByName(t.Security) < 0) throw new Exception("invalid negative amount");
+                    if (Config.WithDebugValidation && My.CashBalance < 0) throw new Exception("invalid cash balance");
+                    if (Config.WithDebugValidation && My.Holdings.ByName(t.Security) < 0) throw new Exception("invalid negative amount");
 
                     // add the shares
                     My.Holdings.Add(t.Security, t.Amount);
@@ -356,6 +358,7 @@ namespace market.engine
                     // add ledger item
                     My.RecordSheet.Add(new LedgerRow()
                     {
+                        Type = LedgerRowType.Buy,
                         Year = Year,
                         Name = t.Security,
                         Amount = t.Amount,
@@ -377,6 +380,8 @@ namespace market.engine
         {
             if (State != States.PostingDividendsAndInterest) throw new Exception("invalid state");
 
+            var totalDivInt = 0;
+
             // apply any cash earnings (these are applied at year end)
             foreach (var kvp in MarketSituation.Cash)
             {
@@ -384,23 +389,13 @@ namespace market.engine
                 var divInt = (amount * kvp.Value);
                 if (amount > 0) My.CashBalance += divInt;
 
-                if (WithDebugValidation && kvp.Value < 0) throw new Exception("invalid cash bonus");
+                if (Config.WithDebugValidation && kvp.Value < 0) throw new Exception("invalid cash bonus");
 
-                // add ledger item
-                if (amount > 0)
-                {
-                    My.RecordSheet.Add(new LedgerRow()
-                    {
-                        Year = Year,
-                        Name = SecurityNames.None,
-                        DividendInterest = divInt,
-                        CashBalance = My.CashBalance
-                    });
-                }
-            }
+                // save the dividend for ledger reporting
+                totalDivInt += divInt;
+           }
 
             // add dividends and interest (these are calculated based on the ParValue - not current value)
-            var totalDivInt = 0;
             foreach (var security in Security.EnumerateAll())
             {
                 // check if there is interest/dividends
@@ -414,16 +409,17 @@ namespace market.engine
                         if (amount > 0)
                         {
                             // add ParValue (starting) dividend/interest
-                            var divInt = (int)((amount * Config.ParValue) * ((float)security.Yield / 100f));
+                            var divPrice = Config.DividendBasedOnMarketPrice ? price : Config.ParValue;
+                            var divInt = (int)((amount * divPrice) * ((float)security.Yield / 100f));
                             My.CashBalance += divInt;
 
-                            if (WithDebugValidation && divInt <= 0) throw new Exception("invalid dividend/interest");
+                            if (Config.WithDebugValidation && divInt <= 0) throw new Exception("invalid dividend/interest");
 
                             // save for ledger
                             totalDivInt += divInt;
                         }
 
-                        if (WithDebugValidation && amount < 0) throw new Exception("invalid negative amount");
+                        if (Config.WithDebugValidation && amount < 0) throw new Exception("invalid negative amount");
                     } // if (price >= NoDividendPrice)
                 } // if (yield > 0)
             } // foreach security
@@ -433,6 +429,7 @@ namespace market.engine
             {
                 My.RecordSheet.Add(new LedgerRow()
                 {
+                    Type = LedgerRowType.DividendAndInterest,
                     Year = Year,
                     Name = SecurityNames.None,
                     DividendInterest = totalDivInt,

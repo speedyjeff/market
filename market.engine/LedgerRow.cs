@@ -1,7 +1,10 @@
 ﻿namespace market.engine
 {
+    public enum LedgerRowType { Buy, Sell, Split, Worthless, DividendAndInterest};
+
     public struct LedgerRow
     {
+        public LedgerRowType Type;
         public int Year;
         public SecurityNames Name;
         public int Amount;
