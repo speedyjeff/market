@@ -8,7 +8,7 @@ namespace market.console
     {
         static void Main(string[] args)
         {
-            if (args.Length> 0)
+            if (args.Length > 0)
             {
                 // running simulations
                 RunAll(BaselinePolicy.AlwaysBuy, iterations: 100);
@@ -39,6 +39,7 @@ namespace market.console
                 }
             }
 
+            // show table of results
             foreach (var security in Security.EnumerateAll())
             {
                 Console.WriteLine($"{TrimName(security.Fullname, 20)}\t{policy}\t${sum[(int)security.Name].Average():f0}\t${sum[(int)security.Name].Min()}\t${sum[(int)security.Name].Max()}");
@@ -119,7 +120,8 @@ namespace market.console
             var cash = market.My.CashBalance;
             while(cash > 0)
             {
-                Console.WriteLine($"Select a security and amount 'id,amount' you wish to {(isbuy ? "purchase" : "sell")}: (${cash}) [enter to quit]");
+                if (isbuy) Console.WriteLine($"Buy: Select a security and amount 'id,amount': (${cash}) [enter when done]");
+                else Console.WriteLine($"Sell: Select a security and amount 'id,amount': [enter when done]");
                 var line = Console.ReadLine();
 
                 // check for exit
@@ -153,6 +155,10 @@ namespace market.console
                                             cash -= cost;
                                             transactions.Add(new Transaction() { Security = name, Amount = amount });
                                         }
+                                        else
+                                        {
+                                            Console.WriteLine(" * not enough cash balance");
+                                        }
                                     }  
                                     else
                                     {
@@ -162,6 +168,10 @@ namespace market.console
                                         {
                                             // valid
                                             transactions.Add(new Transaction() { Security = name, Amount = amount });
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine(" * not enough shares");
                                         }
                                     }
                                 } // if amount > 0 and divisor

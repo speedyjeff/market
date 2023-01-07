@@ -118,10 +118,10 @@
         //
 
         // Game state machine              User calls:
-        // |-> EstablishMarketSituation   
+        // |-> EstablishMarketSituation    StartYear   
         // |     |                           
         // |     \/                          
-        // |  CurrentMarketPrices          StartYear  
+        // |  CurrentMarketPrices       
         // |     |        |                  
         // |  (year 1)  (rest)               
         // |     |        |                  
