@@ -1,6 +1,4 @@
 ﻿using market.engine;
-using Microsoft.VisualBasic;
-using System.Net.Http.Headers;
 
 namespace market.console
 {
@@ -82,7 +80,7 @@ namespace market.console
                     Console.WriteLine($"    Cash dividend (end of year): {Security.ByName(c.Key).Fullname} ${c.Value}");
                 }
                 Console.WriteLine("Current market prices:");
-                Console.WriteLine("Id\tName\tYield\tPrice\tHolding\tCostBasis");
+                Console.WriteLine($"Id\t{TrimName("Name",20)}\tYield\tPrice\tHolding\tCostBasis");
                 foreach (var s in Security.EnumerateAll())
                 {
                     Console.WriteLine($"{(int)s.Name}\t{TrimName(s.Fullname, 20)}\t{s.Yield}%\t${market.Prices.ByName(s.Name)}\t{market.My.Holdings.ByName(s.Name)}\t${market.My.CostBasisByName(s.Name)}");
@@ -103,7 +101,7 @@ namespace market.console
             Console.WriteLine($"final net worth: ${market.TotalNetWorth()}");
 
             // display ledger
-            Console.WriteLine("Year\tSecurity\tAmount\tPrice\tCost\tDivInt\tCash\tTransactionType");
+            Console.WriteLine($"Year\t{TrimName("Security", 20)}\tAmount\tPrice\tCost\tDivInt\tCash\tTransactionType");
             foreach(var row in market.My.RecordSheet)
             {
                 var fullname = row.Name == SecurityNames.None ? "" : Security.ByName(row.Name).Fullname;
@@ -118,14 +116,34 @@ namespace market.console
 
             var transactions = new List<Transaction>();
             var cash = market.My.CashBalance;
-            while(cash > 0)
+            var sellamounts = isbuy ? null : new int[Security.Count];
+            while(true)
             {
-                if (isbuy) Console.WriteLine($"Buy: Select a security and amount 'id,amount': (${cash}) [enter when done]");
-                else Console.WriteLine($"Sell: Select a security and amount 'id,amount': [enter when done]");
+                if (isbuy) Console.WriteLine($"Buy: Select a security and amount 'id,amount': (${cash}) ['enter' when done, 'u' to undo]");
+                else Console.WriteLine($"Sell: Select a security and amount 'id,amount': ['enter' when done, 'u' to undo]");
                 var line = Console.ReadLine();
 
                 // check for exit
                 if (string.IsNullOrWhiteSpace(line)) break;
+
+                // undo
+                if (line.Trim().Equals("u", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (transactions.Count == 0) continue;
+
+                    // undo the local tracking
+                    var lasttransacton = transactions[transactions.Count - 1];
+
+                    // add back to the local cash balance
+                    if (isbuy) cash += (lasttransacton.Amount * market.Prices.ByName(lasttransacton.Security));
+                    // add the amount back to the local amount tracking
+                    else sellamounts[(int)lasttransacton.Security] -= lasttransacton.Amount;
+
+                    // remove last transaction
+                    transactions.RemoveAt( transactions.Count - 1 );
+
+                    continue;
+                }
 
                 // parse input
                 var parts = line.Split(',');
@@ -163,10 +181,11 @@ namespace market.console
                                     else
                                     {
                                         // check that we hold this amount
-                                        var holding = market.My.Holdings.ByName(name);
+                                        var holding = market.My.Holdings.ByName(name) - sellamounts[(int)name];
                                         if (amount <= holding)
                                         {
                                             // valid
+                                            sellamounts[(int)name] += amount;
                                             transactions.Add(new Transaction() { Security = name, Amount = amount });
                                         }
                                         else
