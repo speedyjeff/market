@@ -24,6 +24,8 @@
             My = new Player(Config.InitialCashBalance);
             State = States.EstablishMarketSituation;
             Year = 1;
+            SplitSecurities = new List<SecurityNames>();
+            WorthlesSecurities = new List<SecurityNames>();
 
             // initialize random - all random is pseudo and done up front
             var rand = new Random(Config.Seed);
@@ -48,6 +50,8 @@
         public SituationCard MarketSituation { get; private set; }
         public int Year { get; private set; }
         public Player My { get; private set; }
+        public List<SecurityNames> SplitSecurities { get; private set; }
+        public List<SecurityNames> WorthlesSecurities { get; private set; }
 
         public long TotalNetWorth()
         {
@@ -67,6 +71,10 @@
 
         public bool StartYear()
         {
+            // reset splits/worthless tracking
+            SplitSecurities.Clear();
+            WorthlesSecurities.Clear();
+
             // choose market situation
             ChooseMarketSituation();
 
@@ -220,6 +228,8 @@
                 // 2-for-1 split
                 if (price >= Config.StockSplitPrice)
                 {
+                    SplitSecurities.Add(security.Name);
+
                     // halve the price (round up)
                     var half = (int)Math.Ceiling((float)price / 2f);
                     Prices.Add(security.Name, (-1 * price) + half);
@@ -251,6 +261,8 @@
                 // worthless
                 else if (price <= Config.WorthlessStockPrice)
                 {
+                    WorthlesSecurities.Add(security.Name);
+
                     // player loses their shares
                     var amount = My.Holdings.ByName(security.Name);
                     if (amount > 0) My.Holdings.Add(security.Name, -1 * amount);

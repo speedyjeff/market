@@ -83,7 +83,7 @@ namespace market.console
                 Console.WriteLine($"Id\t{TrimName("Name",20)}\tYield\tPrice\tHolding\tCostBasis");
                 foreach (var s in Security.EnumerateAll())
                 {
-                    Console.WriteLine($"{(int)s.Name}\t{TrimName(s.Fullname, 20)}\t{s.Yield}%\t${market.Prices.ByName(s.Name)}\t{market.My.Holdings.ByName(s.Name)}\t${market.My.CostBasisByName(s.Name)}");
+                    Console.WriteLine($"{(int)s.Name}\t{TrimName(s.Fullname, 20)}\t{s.Yield}%\t{AdditionalInfo(market, s.Name)}${market.Prices.ByName(s.Name)}\t{market.My.Holdings.ByName(s.Name)}\t${market.My.CostBasisByName(s.Name)}");
                 }
                 Console.WriteLine($"${market.My.CashBalance} (net worth: ${market.TotalNetWorth()})");
 
@@ -105,7 +105,7 @@ namespace market.console
             foreach(var row in market.My.RecordSheet)
             {
                 var fullname = row.Name == SecurityNames.None ? "" : Security.ByName(row.Name).Fullname;
-                Console.WriteLine($"{row.Year}\t{TrimName(fullname, 20)}\t{row.Amount}\t{row.Price}\t{row.Cost}\t{row.DividendInterest}\t{row.CashBalance}\t{row.Type}");
+                Console.WriteLine($"{row.Year}\t{TrimName(fullname, 20)}\t{row.Amount}\t${row.Price}\t${row.Cost}\t${row.DividendInterest}\t${row.CashBalance}\t{row.Type}");
             }
         }
 
@@ -228,6 +228,13 @@ namespace market.console
             if (name.Length == length) return name;
             else if (name.Length > length) return name.Substring(0, length);
             else return $"{name}{new string(' ', length-name.Length)}";
+        }
+
+        private static string AdditionalInfo(Market market, SecurityNames name)
+        {
+            if (market.SplitSecurities.Contains(name)) return "S";
+            else if (market.WorthlesSecurities.Contains(name)) return "X";
+            else return "";
         }
         #endregion
     }
