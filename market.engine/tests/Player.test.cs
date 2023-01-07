@@ -25,7 +25,7 @@
 
             // calculate the cost basis
             var costbasis = market.My.CostBasisByName(name);
-            if (costbasis != 112) throw new Exception("invalid cost basis");
+            if (costbasis != 58) throw new Exception("invalid cost basis");
         }
 
         #region private
@@ -36,18 +36,31 @@
                 // add some holdings
                 for (int i = 0; i < market.Config.LastYear; i++)
                 {
+                    // start
                     market.StartYear();
+
+                    // selling
                     var tosell = new List<Transaction>();
                     if (i % 2 != 0)
                     {
-                        // sell 10
-                        tosell.Add(new Transaction() { Security = name, Amount = 10 });
+                        var holding = market.My.Holdings.ByName(name);
+                        if (holding > 10)
+                        {
+                            tosell.Add(new Transaction() { Security = name, Amount = 10 });
+                        }
                     }
                     market.SellSecurities(tosell);
-                    market.BuySecurities(new List<Transaction>()
+
+                    // buying
+                    var tobuy = new List<Transaction>();
+                    var price = market.Prices.ByName(name);
+                    if (market.My.CashBalance >= (price * 20))
                     {
-                        new Transaction() { Security = name, Amount = 20 }
-                    });
+                        tobuy.Add(new Transaction() { Security = name, Amount = 20 });
+                    }
+                    market.BuySecurities(tobuy);
+
+                    // end year
                     market.EndYear();
                 }
             }

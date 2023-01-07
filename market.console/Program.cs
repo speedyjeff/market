@@ -29,7 +29,7 @@ namespace market.console
             var sum = new List<long>[Security.Count];
             for (int i = 0; i < iterations; i++)
             {
-                var config = new MarketConfiguration() { Seed = rand.Next(), AdjustStartingPrices = true, LastYear = 10 };
+                var config = new MarketConfiguration() { Seed = rand.Next(), AdjustStartingPrices = true, LastYear = 10, WithDebugValidation = true };
 
                 foreach (var security in Security.EnumerateAll())
                 {
