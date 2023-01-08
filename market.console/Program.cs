@@ -119,8 +119,7 @@ namespace market.console
             var sellamounts = isbuy ? null : new int[Security.Count];
             while(true)
             {
-                if (isbuy) Console.WriteLine($"Buy: Select a security and amount 'id,amount': (${cash}) ['enter' when done, 'u' to undo]");
-                else Console.WriteLine($"Sell: Select a security and amount 'id,amount': ['enter' when done, 'u' to undo]");
+                Console.WriteLine($"{(isbuy ? "Buy" : "Sell")}: Select a security and amount 'id,amount': (${cash}) ['enter' when done, 'u' to undo]");
                 var line = Console.ReadLine();
 
                 // check for exit
@@ -137,7 +136,11 @@ namespace market.console
                     // add back to the local cash balance
                     if (isbuy) cash += (lasttransacton.Amount * market.Prices.ByName(lasttransacton.Security));
                     // add the amount back to the local amount tracking
-                    else sellamounts[(int)lasttransacton.Security] -= lasttransacton.Amount;
+                    else
+                    {
+                        cash -= (lasttransacton.Amount * market.Prices.ByName(lasttransacton.Security));
+                        sellamounts[(int)lasttransacton.Security] -= lasttransacton.Amount;
+                    }
 
                     // remove last transaction
                     transactions.RemoveAt( transactions.Count - 1 );
@@ -185,6 +188,9 @@ namespace market.console
                                         if (amount <= holding)
                                         {
                                             // valid
+                                            var price = market.Prices.ByName(name);
+                                            var cost = (price * amount);
+                                            cash += cost;
                                             sellamounts[(int)name] += amount;
                                             transactions.Add(new Transaction() { Security = name, Amount = amount });
                                         }
