@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace market.console
 {
-    public enum BaselinePolicy { AlwaysBuy, AlwaysBuyLow };
+    public enum BaselinePolicy { AlwaysBuy, AlwaysBuyLow, AlwaysOnMargin };
 }

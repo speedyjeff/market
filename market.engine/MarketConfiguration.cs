@@ -13,6 +13,10 @@
         public int InitialCashBalance = 5000;
         public bool DividendBasedOnMarketPrice = false;
 
+        public int MarginInterestDue = 5;
+        public int MarginSplitRatio = 2;
+        public int MarginStockMustBeBought = 25;
+
         public bool WithDebugValidation = false;
 
         public MarketConfiguration()

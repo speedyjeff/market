@@ -19,6 +19,9 @@
             if (Config.StockSplitPrice < 0) throw new Exception("invalid stock split price");
             if (Config.WorthlessStockPrice < 0) throw new Exception("invalid worthless stock price");
             if (Config.InitialCashBalance < 0) throw new Exception("invalid initial cash balance");
+            if (Config.MarginSplitRatio <= 0) throw new Exception("invalid margin split");
+            if (Config.MarginInterestDue < 0 || Config.MarginSplitRatio > 100) throw new Exception("invalid margin interest");
+            if (Config.MarginStockMustBeBought < 0) throw new Exception("invalid margin stock purchase price");
 
             // init
             My = new Player(Config.InitialCashBalance);
@@ -65,6 +68,9 @@
             }
 
             if (Config.WithDebugValidation && total < 0) throw new Exception("invalid net worth");
+
+            // remove liabilities due to margin
+            total -= My.MarginTotal;
 
             return total;
         }
@@ -210,7 +216,7 @@
         {
             if (State != States.CurrentMarketPrices) throw new Exception("invalid state");
 
-            if (Year > 1 || Config.AdjustStartingPrices)
+            if (Year > 1 || (Year == 1 && Config.AdjustStartingPrices))
             {
                 // random number between [2-12]
                 var diceroll = RandomDiceRolls[RandomDiceRollIndex++] + RandomDiceRolls[RandomDiceRollIndex++];
@@ -220,7 +226,7 @@
                 Prices.Add(adjustments);
             }
 
-            // stock split & worthless stock
+            // stock split & worthless stock & margin stock
             foreach (var security in Security.EnumerateAll())
             {
                 var price = Prices.ByName(security.Name);
@@ -242,6 +248,18 @@
 
                     if (Config.WithDebugValidation && My.Holdings.ByName(security.Name) != (amount * 2)) throw new Exception("invalid amount");
 
+                    // margin - halve price/double amount for margin purchases
+                    foreach(var m in My.Margins)
+                    {
+                        if (m.Name == security.Name)
+                        {
+                            // halve the price (round up)
+                            m.Price = (int)Math.Ceiling((float)m.Price / 2f);
+                            // double the amount
+                            m.Amount *= 2;
+                        }
+                    }
+
                     // add ledger item
                     if (amount > 0)
                     {
@@ -258,8 +276,14 @@
                     }
                 }
 
+                // check margin for must purchase (but not sell)
+                if (price <= Config.MarginStockMustBeBought)
+                {
+                    CoverCostsOfAllMarginSecurity(security.Name);
+                }
+
                 // worthless
-                else if (price <= Config.WorthlessStockPrice)
+                if (price <= Config.WorthlessStockPrice)
                 {
                     WorthlesSecurities.Add(security.Name);
 
@@ -273,6 +297,7 @@
                     Prices.Add(security.Name, (-1 * price) + Config.ParValue);
 
                     if (Config.WithDebugValidation && Prices.ByName(security.Name) != Config.ParValue) throw new Exception("should be parvalue");
+                    if (Config.WithDebugValidation && My.MarginTotalByName(security.Name) != 0) throw new Exception("should have covered all margin stock prior to worthless");
 
                     // add ledger item
                     if (amount > 0)
@@ -295,6 +320,33 @@
             UpdateState(Year > 1 ? States.SellingSecurities : States.BuyingSecurities);
         }
 
+        private void CoverCostsOfAllMarginSecurity(SecurityNames name)
+        {
+            // remove all the margin stock and cover the outstanding costs with the cash balance
+            var margintotal = My.MarginTotalByName(name);
+            if (margintotal > 0)
+            {
+                // must pay off the remaining margin balance
+                var margincost = My.RemoveMarginSecurity(name, margintotal);
+
+                // adjust balance
+                My.CashBalance -= margincost;
+
+                // todo cash balance may be negative
+
+                // add to ledger
+                My.RecordSheet.Add(new LedgerRow()
+                {
+                    Type = LedgerRowType.MarginInterestCharge,
+                    Year = Year,
+                    Name = SecurityNames.None,
+                    MarginChargesPaid = -1 * margincost,
+                    CashBalance = My.CashBalance,
+                    MarginTotal = My.MarginTotal
+                });
+            }
+        }
+
         // YEARS 2-10: 4. SELLING SECURITIES
         private bool SellingSecuritiesAtMarketPrice(List<Transaction> transactions)
         {
@@ -309,10 +361,40 @@
                     var amount = My.Holdings.ByName(t.Security);
                     if (amount < 0 || amount < t.Amount) throw new Exception("invalid amount");
 
-                    // sell these shares and credit the money
+                    // calculate cost
                     var price = Prices.ByName(t.Security);
                     var cost = (t.Amount * price);
+
+                    // check if some shares need to be part of an on margin purchase
+                    var margintotal = My.MarginTotalByName(t.Security);
+                    var margincost = 0;
+                    if (margintotal > 0)
+                    {
+                        // check if we will need to sell on margin to cover the request
+                        if (!t.OnMargin)
+                        {
+                            // need to sell some margin shares to cover request
+                            if (t.Amount > (amount - margintotal)) margintotal = t.Amount - (amount - margintotal);
+                            // all can be done without selling on margin shares
+                            else margintotal = 0;
+                        }
+
+                        // deduct proceeds from on margin sale 
+                        if (t.OnMargin || margintotal > 0)
+                        {
+                            // sell the on margin securities
+                            var minamount = Math.Min(margintotal, t.Amount);
+                            margincost = My.RemoveMarginSecurity(t.Security, minamount);
+
+                            // reduce this from the proceeds of the sale above
+                            cost -= margincost;
+                        }
+                    }
+
+                    // credit the money
                     My.CashBalance += cost;
+
+                    // todo cash balance may be negative
 
                     if (Config.WithDebugValidation && price < 0) throw new Exception("invalid price");
 
@@ -331,7 +413,9 @@
                         Amount = t.Amount,
                         Price = price,
                         Cost = cost,
-                        CashBalance = My.CashBalance
+                        CashBalance = My.CashBalance,
+                        MarginChargesPaid = margincost,
+                        MarginTotal = My.MarginTotal
                     });
                 }
             }
@@ -352,10 +436,14 @@
             {
                 foreach (var t in transactions)
                 {
+                    // not able to purchase on margin the first year
+                    if ((Year == 1 || Year == Config.LastYear) && t.OnMargin) t.OnMargin = false;
+
                     // validate that this is an valid transaction
                     if (t.Amount % Config.PurchaseDivisor != 0 || t.Amount <= 0) throw new Exception("invalid amount");
                     var price = Prices.ByName(t.Security);
                     var cost = t.Amount * price;
+                    if (t.OnMargin) cost /= Config.MarginSplitRatio;
                     if (cost <= 0 || cost > My.CashBalance) throw new Exception("invalid amount");
 
                     // deduct the amount
@@ -367,6 +455,9 @@
                     // add the shares
                     My.Holdings.Add(t.Security, t.Amount);
 
+                    // add tracking of a margin purchase
+                    if (t.OnMargin) My.Margins.Add(new SecurityDetail() { Name = t.Security, Price = price, Amount = t.Amount / Config.MarginSplitRatio });
+
                     // add ledger item
                     My.RecordSheet.Add(new LedgerRow()
                     {
@@ -376,7 +467,8 @@
                         Amount = t.Amount,
                         Price = price,
                         Cost = (-1 * cost),
-                        CashBalance = My.CashBalance
+                        CashBalance = My.CashBalance,
+                        MarginTotal = My.MarginTotal
                     });
                 }
             }
@@ -405,7 +497,7 @@
 
                 // save the dividend for ledger reporting
                 totalDivInt += divInt;
-           }
+            }
 
             // add dividends and interest (these are calculated based on the ParValue - not current value)
             foreach (var security in Security.EnumerateAll())
@@ -447,6 +539,38 @@
                     DividendInterest = totalDivInt,
                     CashBalance = My.CashBalance
                 });
+            }
+
+            // check margin
+            var margintotal = My.MarginTotal;
+            if (margintotal > 0)
+            {
+                // charge the margin fee
+                var cost = (int)Math.Ceiling((float)margintotal * ((float)Config.MarginInterestDue/100f));
+                My.CashBalance -= cost;
+
+                // todo cash balance can be negative
+
+                // add to ledger
+                My.RecordSheet.Add(new LedgerRow()
+                {
+                    Type = LedgerRowType.MarginInterestCharge,
+                    Year = Year,
+                    Name = SecurityNames.None,
+                    MarginChargesPaid = -1 * cost,
+                    CashBalance = My.CashBalance,
+                    MarginTotal = My.MarginTotal
+                });
+            }
+
+            // check if heading into last year, then force the purchase of all on margin shares
+            margintotal = My.MarginTotal;
+            if (Year == Config.LastYear - 1 && margintotal > 0)
+            {
+                foreach (var security in Security.EnumerateAll())
+                {
+                    CoverCostsOfAllMarginSecurity(security.Name);
+                }
             }
 
             // update
