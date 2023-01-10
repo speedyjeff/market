@@ -22,6 +22,7 @@
             if (Config.MarginSplitRatio <= 0) throw new Exception("invalid margin split");
             if (Config.MarginInterestDue < 0 || Config.MarginSplitRatio > 100) throw new Exception("invalid margin interest");
             if (Config.MarginStockMustBeBought < 0) throw new Exception("invalid margin stock purchase price");
+            if (Config.TransactionFee < 0) throw new Exception("must have a non-zero positive transaction fee");
 
             // init
             My = new Player(Config.InitialCashBalance);
@@ -389,6 +390,9 @@
                         }
                     }
 
+                    // fixed cost per transaction
+                    cost -= Config.TransactionFee;
+
                     // credit the money
                     My.CashBalance += cost;
 
@@ -441,6 +445,9 @@
                     var cost = t.Amount * price;
                     if (t.OnMargin) cost /= Config.MarginSplitRatio;
                     if (cost <= 0L || cost > My.CashBalance) throw new Exception("invalid amount");
+
+                    // fixed cost per transaction
+                    cost += Config.TransactionFee;
 
                     // deduct the amount
                     My.CashBalance -= cost;

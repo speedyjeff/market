@@ -12,6 +12,7 @@
         public bool AdjustStartingPrices = false;
         public long InitialCashBalance = 5000;
         public bool DividendBasedOnMarketPrice = false;
+        public long TransactionFee = 0;
 
         public long MarginInterestDue = 5;
         public long MarginSplitRatio = 2;

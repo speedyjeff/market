@@ -4,50 +4,111 @@ namespace market.console
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            if (args.Length < 0)
+            var options = Options.Parse(args);
+
+            if (options.Help)
+            {
+                Options.ShowHelp();
+                return 1;
+            }
+
+            if (options.Mode == Modes.RunLoop)
             {
                 // running simulations
-                RunAll(BaselinePolicy.AlwaysOnMargin, iterations: 100);
+                RunLoop(options);
             }
-            else
+            else if (options.Mode == Modes.RunOnce)
             {
                 // running one round
-                RunOnce();
+                RunOnce(options);
             }
+
+            return 0;
         }
 
         #region private
-        private static void RunAll(BaselinePolicy policy, int iterations)
+        private static void RunLoop(Options options)
         {
             var rand = new Random();
+            var config = new MarketConfiguration()
+            {
+                AdjustStartingPrices = options.AdjustStartingPrices,
+                DividendBasedOnMarketPrice = options.DividendBasedOnMarketPrice,
+                InitialCashBalance = options.InitialCashBalance,
+                MarginInterestDue = options.MarginInterestDue,
+                MarginSplitRatio = options.MarginSplitRatio,
+                MarginStockMustBeBought = options.MarginStockMustBeBought,
+                LastYear = options.LastYear,
+                NoDividendPrice = options.NoDividendPrice,
+                ParValue = options.ParValue,
+                PurchaseDivisor = options.PurchaseDivisor,
+                StockSplitPrice = options.StockSplitPrice,
+                WorthlessStockPrice = options.WorthlessStockPrice,
+                WithDebugValidation = options.WithDebugValidation
+            };
+
+            // display settings
+            Console.WriteLine($"AdjustStartingPrices       = {options.AdjustStartingPrices}");
+            Console.WriteLine($"DividendBasedOnMarketPrice = {options.DividendBasedOnMarketPrice}");
+            Console.WriteLine($"InitialCashBalance         = {options.InitialCashBalance}");
+            Console.WriteLine($"MarginInterestDue          = {options.MarginInterestDue}");
+            Console.WriteLine($"MarginSplitRatio           = {options.MarginSplitRatio}");
+            Console.WriteLine($"MarginStockMustBeBought    = {options.MarginStockMustBeBought}");
+            Console.WriteLine($"LastYear                   = {options.LastYear}");
+            Console.WriteLine($"NoDividendPrice            = {options.NoDividendPrice}");
+            Console.WriteLine($"ParValue                   = {options.ParValue}");
+            Console.WriteLine($"PurchaseDivisor            = {options.PurchaseDivisor}");
+            Console.WriteLine($"StockSplitPrice            = {options.StockSplitPrice}");
+            Console.WriteLine($"WorthlessStockPrice        = {options.WorthlessStockPrice}");
+            Console.WriteLine($"WithDebugValidation        = {options.WithDebugValidation}");
+            Console.WriteLine();
 
             // run the market with default policies for all securities
             var sum = new List<long>[Security.Count];
-            for (int i = 0; i < iterations; i++)
+            for (int i = 0; i < options.Iterations; i++)
             {
-                var config = new MarketConfiguration() { Seed = rand.Next(), AdjustStartingPrices = true, LastYear = 10, WithDebugValidation = true };
+                // set seed
+                config.Seed = (options.Seed == 0) ? rand.Next() : options.Seed;
 
+                // run with all securities as input
                 foreach (var security in Security.EnumerateAll())
                 {
                     if (sum[(int)security.Name] == null) sum[(int)security.Name] = new List<long>();
-                    var market = BaselineMarket.Run(config, security.Name, policy);
+                    var market = BaselineMarket.Run(config, security.Name, options.Policy);
                     sum[(int)security.Name].Add(market.TotalNetWorth());
                 }
             }
 
             // show table of results
+            Console.WriteLine("Security\tPolicy\tAverage\tMin\tMax");
             foreach (var security in Security.EnumerateAll())
             {
-                Console.WriteLine($"{TrimName(security.Fullname, 20)}\t{policy}\t${sum[(int)security.Name].Average():f0}\t${sum[(int)security.Name].Min()}\t${sum[(int)security.Name].Max()}");
+                Console.WriteLine($"{security.Name}\t{options.Policy}\t${sum[(int)security.Name].Average():f0}\t${sum[(int)security.Name].Min()}\t${sum[(int)security.Name].Max()}");
             }
         }
 
-        private static void RunOnce()
+        private static void RunOnce(Options options)
         {
             var rand = new Random();
-            var config = new MarketConfiguration() { Seed = rand.Next(), WithDebugValidation = true };
+            var config = new MarketConfiguration()
+            {
+                Seed = (options.Seed == 0) ? rand.Next() : options.Seed,
+                AdjustStartingPrices = options.AdjustStartingPrices,
+                DividendBasedOnMarketPrice = options.DividendBasedOnMarketPrice,
+                InitialCashBalance = options.InitialCashBalance,
+                MarginInterestDue = options.MarginInterestDue,
+                MarginSplitRatio = options.MarginSplitRatio,
+                MarginStockMustBeBought = options.MarginStockMustBeBought,
+                LastYear = options.LastYear,
+                NoDividendPrice = options.NoDividendPrice,
+                ParValue = options.ParValue,
+                PurchaseDivisor = options.PurchaseDivisor,
+                StockSplitPrice = options.StockSplitPrice,
+                WorthlessStockPrice = options.WorthlessStockPrice,
+                WithDebugValidation = options.WithDebugValidation
+            };
             var market = new Market(config);
 
             // share configuration
@@ -56,6 +117,7 @@ namespace market.console
             Console.WriteLine($"all transactions must be divisible by {market.Config.PurchaseDivisor}");
             if (market.Config.AdjustStartingPrices) Console.WriteLine($"stocks starting price various from {market.Config.ParValue}");
             else Console.WriteLine($"stocks start at {market.Config.ParValue}");
+            Console.WriteLine($"stock dividends are based on {(options.DividendBasedOnMarketPrice ? "market price" : "par value")}");
             Console.WriteLine($"[optional] When buying stock on margin {100d / (double)market.Config.MarginSplitRatio:f0}% is bought on margin at {market.Config.MarginInterestDue}% per year");
             Console.WriteLine($" margin buys can only occur between years 2 and {market.Config.LastYear - 1} and must be paid in full when below {market.Config.MarginStockMustBeBought}");
             Console.WriteLine("  when selling/buying below, cash balance is only an estimate");
