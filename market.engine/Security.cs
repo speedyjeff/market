@@ -4,7 +4,7 @@
     {
         public readonly SecurityNames Name;
         public readonly string Fullname;
-        public readonly int Yield;
+        public readonly long Yield;
         public readonly string Description;
 
         public static int Count { get { return All.Length; } }
@@ -21,7 +21,7 @@
         }
 
         #region private
-        private Security(SecurityNames name, string fullname, int yield, string description)
+        private Security(SecurityNames name, string fullname, long yield, string description)
         {
             Name = name;
             Fullname = fullname;
@@ -34,7 +34,7 @@
                 // SecurityNames.CentralCityMunicipalBonds,
                 new Security(name: SecurityNames.CentralCityMunicipalBonds,
                     fullname: "Central City Municipal Bonds",
-                    yield: 5,
+                    yield: 5L,
                     description: "An AAA bond with a good yield.  This investment represents extreme security and good income, but, of course, no appreciation. "
                 ),
 
@@ -42,7 +42,7 @@
                 new Security(
                     name: SecurityNames.GrowthCorporationOfAmerica,
                     fullname: "Growth Corporation Of America",
-                    yield: 1,
+                    yield: 1L,
                     description: "A well established company with a phenomenal growth record.  it is an expanding industry, spends a lot of money on research and is expected to continue its growth pattern.  The Companys policy of reinvesting earnings causes low yield.  The price-to-earnings ratio of this stock is extremely high. "
                 ),
 
@@ -50,7 +50,7 @@
                 new Security(
                     name: SecurityNames.MetroPropertiesInc,
                     fullname: "Metro Properties Inc",
-                    yield: 0,
+                    yield: 0L,
                     description: "An investment representing good prospects of high appreciation.  No dividends are expected in the immediate future.  However, the City’s proposed Urban Renewal Program could have great effect on earnings. "
                 ),
 
@@ -58,7 +58,7 @@
                 new Security(
                     name: SecurityNames.PioneerMutualFund,
                     fullname: "Pioneer Mutual Fund",
-                    yield: 4,
+                    yield: 4L,
                     description: "A common stock income mutual fund offered by a large mutual fund company.  It has a good yield of 4%.  Stock in this fund represents a good, steady income, but only a fair appreciation investment."
                 ),
 
@@ -66,7 +66,7 @@
                 new Security(
                     name: SecurityNames.ShadyBrooksDevelopment,
                     fullname: "Shady Brooks Development",
-                    yield: 7,
+                    yield: 7L,
                     description: "A real estate investment representing extremely high income, but steadily depreciating capital assets."
                 ),
 
@@ -74,7 +74,7 @@
                 new Security(
                     name: SecurityNames.StrykerDrillingCompany,
                     fullname: "Stryker Drilling Company",
-                    yield: 0,
+                    yield: 0L,
                     description: "A stock representing extremely speculative investment.  Profits go toward drilling new oil wells, so no dividends are expected.  This stock could be worth rags or riches."
                 ),
 
@@ -82,7 +82,7 @@
                 new Security(
                     name: SecurityNames.TriCityTransportCompany,
                     fullname: "Tri-City Transport Company",
-                    yield: 0,
+                    yield: 0L,
                     description: "A stock representing a high appreciation investment prospect with a good stable outlook depending on the administrative ability and ambition of its respected, ethical and energetic young president.  As all profits go back into the Company, dividends are not expected to be declared in the foreseeable future."
                 ),
 
@@ -90,7 +90,7 @@
                 new Security(
                     name: SecurityNames.UnitedAutoCompany,
                     fullname: "United Auto Company",
-                    yield: 2,
+                    yield: 2L,
                     description: "A medium large company in the large, oligopolistic automobile industry.  United Auto, like others in the industry, is subject to whims of public fancy.  Stock in this company represents a somewhat speculative investment with a good growth pattern.  Because it is popular with the investing public, it has fairly high price-to-earning ratio and low yield."
                 ),
 
@@ -98,7 +98,7 @@
                 new Security(
                     name: SecurityNames.UraniumEnterprisesInc,
                     fullname: "Uranium Enterprises Inc",
-                    yield: 6,
+                    yield: 6L,
                     description: "A highly speculative, high income stock ideal for the short or medium term investor.  Its long term prospects are fair to poor. "
                 ),
 
@@ -106,7 +106,7 @@
                 new Security(
                     name: SecurityNames.ValleyPowerAndLightCompany,
                     fullname: "Valley Power And Light Company",
-                    yield: 3,
+                    yield: 3L,
                     description: "A stable, steadily growing public utility company located in a well established, healthy industrial area.  Stock in this company represents a safe, medium yield, medium growth investment. "
                 )
             };

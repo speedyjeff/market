@@ -6,10 +6,10 @@ namespace market.console
     {
         static void Main(string[] args)
         {
-            if (args.Length > 0)
+            if (args.Length < 0)
             {
                 // running simulations
-                RunAll(BaselinePolicy.AlwaysBuy, iterations: 100);
+                RunAll(BaselinePolicy.AlwaysOnMargin, iterations: 100);
             }
             else
             {
@@ -56,7 +56,7 @@ namespace market.console
             Console.WriteLine($"all transactions must be divisible by {market.Config.PurchaseDivisor}");
             if (market.Config.AdjustStartingPrices) Console.WriteLine($"stocks starting price various from {market.Config.ParValue}");
             else Console.WriteLine($"stocks start at {market.Config.ParValue}");
-            Console.WriteLine($"[optional] When buying stock on margin {100f / (float)market.Config.MarginSplitRatio:f0}% is bought on margin at {market.Config.MarginInterestDue}% per year");
+            Console.WriteLine($"[optional] When buying stock on margin {100d / (double)market.Config.MarginSplitRatio:f0}% is bought on margin at {market.Config.MarginInterestDue}% per year");
             Console.WriteLine($" margin buys can only occur between years 2 and {market.Config.LastYear - 1} and must be paid in full when below {market.Config.MarginStockMustBeBought}");
             Console.WriteLine("  when selling/buying below, cash balance is only an estimate");
             Console.WriteLine();
@@ -124,7 +124,7 @@ namespace market.console
 
             var transactions = new List<Transaction>();
             var cash = market.My.CashBalance;
-            var sellamounts = isbuy ? null : new int[Security.Count];
+            var sellamounts = isbuy ? null : new long[Security.Count];
             while(true)
             {
                 Console.WriteLine($"{(isbuy ? "Buy" : "Sell")}: Select a security and amount 'id,amount': ({(isbuy ? "" : "~")}${cash}) ['enter' when done, 'u' to undo, prefix with 'm' for margin]");
@@ -137,6 +137,11 @@ namespace market.console
                 var onmargin = false;
                 if (line.Contains("m", StringComparison.OrdinalIgnoreCase))
                 {
+                    if (market.Year == 1 || market.Year == market.Config.LastYear)
+                    {
+                        Console.WriteLine(" * cannot purchase on margin on the first and last year");
+                        continue;
+                    }
                     onmargin = true;
                     line = line.Replace("m", "").Replace("M", "");
                 }
@@ -181,7 +186,7 @@ namespace market.console
                             var name = (SecurityNames)id;
 
                             // check if valid amount
-                            if (Int32.TryParse(parts[1], out int amount))
+                            if (Int64.TryParse(parts[1], out long amount))
                             {
                                 if (amount > 0 && (amount % market.Config.PurchaseDivisor) == 0)
                                 {

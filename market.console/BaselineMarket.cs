@@ -24,7 +24,7 @@ namespace market.console
 
                 // calculate opportunity
                 var price = market.Prices.ByName(security);
-                var amount = (int)(market.My.CashBalance / price);
+                var amount = (market.My.CashBalance / price);
                 // ensure round number
                 amount -= (amount % market.Config.PurchaseDivisor);
 
@@ -34,6 +34,7 @@ namespace market.console
                     // buy based on policy
                     if (policy == BaselinePolicy.AlwaysBuy) placeOrder = true;
                     else if (policy == BaselinePolicy.AlwaysBuyLow && price <= market.Config.ParValue) placeOrder = true;
+                    else if (policy == BaselinePolicy.AlwaysOnMargin && market.Year != 1 && market.Year != market.Config.LastYear) placeOrder = true;
                 }
 
                 // place the order
@@ -44,7 +45,8 @@ namespace market.console
                         new Transaction()
                         {
                             Security = security,
-                            Amount = amount
+                            Amount = amount,
+                            OnMargin = (policy == BaselinePolicy.AlwaysOnMargin)
                         }
                     });
                 }

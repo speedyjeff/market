@@ -9,7 +9,7 @@ namespace market.engine
     public class SecurityDetail
     {
         public SecurityNames Name { get; set; }
-        public int Price { get; set; }
-        public int Amount { get; set; }
+        public long Price { get; set; }
+        public long Amount { get; set; }
     }
 }

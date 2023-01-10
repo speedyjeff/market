@@ -7,12 +7,12 @@
         public LedgerRowType Type;
         public int Year;
         public SecurityNames Name;
-        public int Amount;
-        public int Price;
-        public int Cost;
-        public int DividendInterest;
-        public int MarginChargesPaid;
+        public long Amount;
+        public long Price;
+        public long Cost;
+        public long DividendInterest;
+        public long MarginChargesPaid;
         public long CashBalance;
-        public int MarginTotal;
+        public long MarginTotal;
     }
 }

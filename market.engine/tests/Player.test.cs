@@ -12,7 +12,7 @@
 
             // calculate the cost basis
             var costbasis = market.My.CostBasisByName(name);
-            if (costbasis != 100) throw new Exception("invalid cost basis");
+            if (costbasis != 100L) throw new Exception("invalid cost basis");
         }
 
         public static void VariableCostBasis()
@@ -25,7 +25,7 @@
 
             // calculate the cost basis
             var costbasis = market.My.CostBasisByName(name);
-            if (costbasis != 58) throw new Exception("invalid cost basis");
+            if (costbasis != 58L) throw new Exception("invalid cost basis");
         }
 
         #region private
@@ -44,9 +44,9 @@
                     if (i % 2 != 0)
                     {
                         var holding = market.My.Holdings.ByName(name);
-                        if (holding > 10)
+                        if (holding > 10L)
                         {
-                            tosell.Add(new Transaction() { Security = name, Amount = 10 });
+                            tosell.Add(new Transaction() { Security = name, Amount = 10L });
                         }
                     }
                     market.SellSecurities(tosell);
@@ -54,9 +54,9 @@
                     // buying
                     var tobuy = new List<Transaction>();
                     var price = market.Prices.ByName(name);
-                    if (market.My.CashBalance >= (price * 20))
+                    if (market.My.CashBalance >= (price * 20L))
                     {
-                        tobuy.Add(new Transaction() { Security = name, Amount = 20 });
+                        tobuy.Add(new Transaction() { Security = name, Amount = 20L });
                     }
                     market.BuySecurities(tobuy);
 

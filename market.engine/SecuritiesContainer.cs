@@ -4,10 +4,10 @@
     {
         public SecuritiesContainer()
         {
-            Deltas = new int[Security.Count];
+            Deltas = new long[Security.Count];
         }
         
-        public int ByName(SecurityNames name)
+        public long ByName(SecurityNames name)
         {
             if (Deltas == null) throw new Exception("not initialized");
             if ((int)name < 0 || (int)name > Deltas.Length) return 0;
@@ -15,23 +15,23 @@
         }
 
         #region private
-        private int[] Deltas;
+        private long[] Deltas;
         #endregion
 
         #region private internal
         internal void Add(SecuritiesContainer other)
         {
             if (other.Deltas == null) return;
-            if (Deltas == null) Deltas = new int[other.Deltas.Length];
+            if (Deltas == null) Deltas = new long[other.Deltas.Length];
 
             // combine
             for (int i = 0; i < Deltas.Length; i++)
             {
-                Deltas[i] += (i < other.Deltas.Length) ? other.Deltas[i] : 0;
+                Deltas[i] += (i < other.Deltas.Length) ? other.Deltas[i] : 0L;
             }
         }
 
-        internal void Add(SecurityNames security, int amount)
+        internal void Add(SecurityNames security, long amount)
         {
             if ((int)security < 0 || (int)security >= Deltas.Length) throw new Exception("invalid security");
             if (Deltas == null) throw new Exception("must be initialized");
