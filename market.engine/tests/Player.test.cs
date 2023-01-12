@@ -1,4 +1,7 @@
-﻿namespace market.engine.tests
+﻿using System;
+using System.Collections.Generic;
+
+namespace market.engine.tests
 {
     static class PlayerTest
     {

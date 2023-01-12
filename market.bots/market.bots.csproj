@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\market.engine\market.engine.csproj" />
+    <ProjectReference Include="..\Reinforcement\Learning\Learning.csproj" />
+  </ItemGroup>
+
+</Project>

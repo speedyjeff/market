@@ -38,7 +38,10 @@ namespace market.console
             Console.WriteLine("./market.console");
             Console.WriteLine(" -(h)elp                       - this help");
             Console.WriteLine(" -(m)ode                       - play an interactive game (0) or simulate multiple games (1) (default 0)");
-            Console.WriteLine(" -(po)licy                     - 0: always buy, 1: always buy low, 2: always buy margin (default 0)");
+            Console.WriteLine(" -(po)licy                     - 0: always buy (default)");
+            Console.WriteLine("                                 1: always buy low");
+            Console.WriteLine("                                 2: always buy margin");
+            Console.WriteLine("                                 3: learning neural bots");
             Console.WriteLine(" -(it)erations                 - number of loops when policy is not 0 (default 1000)");
             Console.WriteLine(" -(se)ed                       - pseudo random seed (default 0 - eg. random)");
             Console.WriteLine(" -(pa)rvalue                   - starting stock price (default $100");

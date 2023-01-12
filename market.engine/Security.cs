@@ -1,4 +1,7 @@
-﻿namespace market.engine
+﻿using System;
+using System.Collections.Generic;
+
+namespace market.engine
 {
     public struct Security
     {

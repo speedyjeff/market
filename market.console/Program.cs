@@ -63,29 +63,52 @@ namespace market.console
             Console.WriteLine($"StockSplitPrice            = {options.StockSplitPrice}");
             Console.WriteLine($"WorthlessStockPrice        = {options.WorthlessStockPrice}");
             Console.WriteLine($"WithDebugValidation        = {options.WithDebugValidation}");
+            Console.WriteLine($"Iterations                 = {options.Iterations}");
+            Console.WriteLine($"Policy                     = {options.Policy}");
             Console.WriteLine();
 
-            // run the market with default policies for all securities
-            var sum = new List<long>[Security.Count];
-            for (int i = 0; i < options.Iterations; i++)
+            if (options.Policy == BaselinePolicy.NeuralBots)
             {
-                // set seed
-                config.Seed = (options.Seed == 0) ? rand.Next() : options.Seed;
+                // get the most productive models
+                var bots = BaselineMarket.RunIteratively(config, options.Iterations, keep: 5);
 
-                // run with all securities as input
-                foreach (var security in Security.EnumerateAll())
+                // display what is found
+                foreach(var b in bots)
                 {
-                    if (sum[(int)security.Name] == null) sum[(int)security.Name] = new List<long>();
-                    var market = BaselineMarket.Run(config, security.Name, options.Policy);
-                    sum[(int)security.Name].Add(market.TotalNetWorth());
+                    Console.WriteLine($"Avg: {b.Networths.Average()} over {b.Networths.Count} runs");
+                    Console.Write($"Buys: ");
+                    for (int i = 0; i < b.Bot.BuySecurityOrder.Length; i++) Console.Write($"{(SecurityNames)b.Bot.BuySecurityOrder[i]} ");
+                    Console.WriteLine();
+                    Console.Write($"Sells: ");
+                    for (int i = 0; i < b.Bot.SellSecurityOrder.Length; i++) Console.Write($"{(SecurityNames)b.Bot.SellSecurityOrder[i]} ");
+                    Console.WriteLine();
+                    DisplayLedger(b.Market);
                 }
             }
-
-            // show table of results
-            Console.WriteLine("Security\tPolicy\tAverage\tMin\tMax");
-            foreach (var security in Security.EnumerateAll())
+            else
             {
-                Console.WriteLine($"{security.Name}\t{options.Policy}\t${sum[(int)security.Name].Average():f0}\t${sum[(int)security.Name].Min()}\t${sum[(int)security.Name].Max()}");
+                // run the market with default policies for all securities
+                var sum = new List<long>[Security.Count];
+                for (int i = 0; i < options.Iterations; i++)
+                {
+                    // set seed
+                    config.Seed = (options.Seed == 0) ? rand.Next() : options.Seed;
+
+                    // run with all securities as input
+                    foreach (var security in Security.EnumerateAll())
+                    {
+                        if (sum[(int)security.Name] == null) sum[(int)security.Name] = new List<long>();
+                        var market = BaselineMarket.RunOnce(config, security.Name, options.Policy);
+                        sum[(int)security.Name].Add(market.TotalNetWorth());
+                    }
+                }
+
+                // show table of results
+                Console.WriteLine("Security\tPolicy\tAverage\tMin\tMax");
+                foreach (var security in Security.EnumerateAll())
+                {
+                    Console.WriteLine($"{security.Name}\t{options.Policy}\t${sum[(int)security.Name].Average():f0}\t${sum[(int)security.Name].Min()}\t${sum[(int)security.Name].Max()}");
+                }
             }
         }
 
@@ -171,11 +194,16 @@ namespace market.console
             Console.WriteLine($"final net worth: ${market.TotalNetWorth()}");
 
             // display ledger
-            Console.WriteLine($"Year\t{TrimName("Security", 20)}\tAmount\tPrice\tCost\tDivInt\tMarginCharges\t{TrimName("Cash",10)}\tMarginTotal\tTransactionType");
-            foreach(var row in market.My.RecordSheet)
+            DisplayLedger(market);
+        }
+
+        private static void DisplayLedger(Market market)
+        {
+            Console.WriteLine($"Year\t{TrimName("Security", 20)}\tAmount\tPrice\tCost\tDivInt\tMarginCharges\t{TrimName("Cash", 10)}\tMarginTotal\tTransactionType");
+            foreach (var row in market.My.RecordSheet)
             {
                 var fullname = row.Name == SecurityNames.None ? "" : Security.ByName(row.Name).Fullname;
-                Console.WriteLine($"{row.Year}\t{TrimName(fullname, 20)}\t{row.Amount}\t{AsMoney(row.Price,5)}\t{AsMoney(row.Cost,7)}\t{AsMoney(row.DividendInterest,6)}\t{AsMoney(row.MarginChargesPaid,10)}\t{AsMoney(row.CashBalance,10)}\t{AsMoney(row.MarginTotal,10)}\t{row.Type}");
+                Console.WriteLine($"{row.Year}\t{TrimName(fullname, 20)}\t{row.Amount}\t{AsMoney(row.Price, 5)}\t{AsMoney(row.Cost, 7)}\t{AsMoney(row.DividendInterest, 6)}\t{AsMoney(row.MarginChargesPaid, 10)}\t{AsMoney(row.CashBalance, 10)}\t{AsMoney(row.MarginTotal, 10)}\t{row.Type}");
             }
         }
 

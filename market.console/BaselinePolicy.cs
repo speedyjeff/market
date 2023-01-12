@@ -1,4 +1,4 @@
 ﻿namespace market.console
 {
-    public enum BaselinePolicy { AlwaysBuy, AlwaysBuyLow, AlwaysOnMargin };
+    public enum BaselinePolicy { AlwaysBuy, AlwaysBuyLow, AlwaysOnMargin, NeuralBots };
 }

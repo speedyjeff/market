@@ -1,4 +1,6 @@
-﻿namespace market.engine
+﻿using System;
+
+namespace market.engine
 {
     static class MarketPriceCard
     {
