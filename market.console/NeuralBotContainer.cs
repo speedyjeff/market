@@ -14,10 +14,10 @@ namespace market.console
         public Market Market;
         public List<long> Networths;
 
-        public NeuralBotContainer()
+        public NeuralBotContainer(NeuralBotOptions options)
         {
             Networths = new List<long>();
-            Bot = new NeuralBot();
+            Bot = new NeuralBot(options);
         }
     }
 }

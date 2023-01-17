@@ -11,11 +11,14 @@ namespace market.bots
 {
     public class NeuralBot
     {
-        public NeuralBot()
+        public NeuralBot(NeuralBotOptions options)
         {
             // init
-            BuySecurityOrder = CreateShuffledList(Security.Count);
-            SellSecurityOrder = CreateShuffledList(Security.Count);
+            Options = options;
+            BuySecurityOrder = options.ShuffleBuySecurityOrder ? CreateShuffledList(Security.Count) : CreateList(Security.Count);
+            SellSecurityOrder = options.ShuffleSellSecurityOrder ? CreateShuffledList(Security.Count) : CreateList(Security.Count);
+            InputCount = ConstInputCount;
+            OutputCount = (Options.AllowOnMargin ? ConstOutputOnMarginCount : ConstOutputCount);
 
             // initialize individual networks
             BuyNetworks = new NeuralNetwork[Security.Count];
@@ -27,18 +30,18 @@ namespace market.bots
                     {
                         InputNumber = InputCount,
                         OutputNumber = OutputCount,
-                        HiddenLayerNumber = new int[] { 16 },
-                        LearningRate = 0.00015f,
-                        MinibatchCount = 1
+                        HiddenLayerNumber = Options.HiddenNetworks,
+                        LearningRate = Options.LearningRate,
+                        MinibatchCount = Options.MiniBatchCount
                     });
                 SellNetworks[(int)security.Name] = new NeuralNetwork(
                     new NeuralOptions()
                     {
                         InputNumber = InputCount,
                         OutputNumber = OutputCount,
-                        HiddenLayerNumber = new int[] { 16 },
-                        LearningRate = 0.00015f,
-                        MinibatchCount = 1
+                        HiddenLayerNumber = Options.HiddenNetworks,
+                        LearningRate = Options.LearningRate,
+                        MinibatchCount = Options.MiniBatchCount
                     });
             }
         }
@@ -48,25 +51,27 @@ namespace market.bots
 
         public List<Transaction> Buy(Market market)
         {
-            return CreateOrder(BuySecurityOrder, BuyNetworks, market, isbuy: true);
+            return CreateOrder(Options, BuySecurityOrder, BuyNetworks, market, isbuy: true);
         }
 
         public List<Transaction> Sell(Market market)
         {
-            return CreateOrder(SellSecurityOrder, SellNetworks, market, isbuy: false);
+            return CreateOrder(Options, SellSecurityOrder, SellNetworks, market, isbuy: false);
         }
 
         #region private
         private static RandomNumberGenerator Random;
+        private NeuralBotOptions Options;
         private NeuralNetwork[] BuyNetworks;
         private NeuralNetwork[] SellNetworks;
+        private int InputCount;
+        private int OutputCount;
 
-        // todo margin
+        private enum Outputs { Zero = 0, Ten = 1, Twenty = 2, FiftyPercent = 3, HundredPercent = 4, TenOnMargin = 5, TwentyOnMargin = 6, FiftyPercentOnMargin = 7, HundredPercentOnMargin = 8 };
 
-        private enum Outputs { Zero = 0, Ten = 1, Twenty = 2, FiftyPercent = 3, HundredPercent = 4 };
-
-        private const int InputCount = 15;
-        private const int OutputCount = 5;
+        private const int ConstInputCount = 16;
+        private const int ConstOutputCount = 5;
+        private const int ConstOutputOnMarginCount = 9;
 
         static NeuralBot()
         {
@@ -100,19 +105,30 @@ namespace market.bots
             return indexes;
         }
 
-        private static float[] ToInput(Market market, SecurityNames name)
+        private static int[] CreateList(int length)
+        {
+            // create index array
+            var indexes = new int[length];
+            for (int i = 0; i < indexes.Length; i++) indexes[i] = i;
+            return indexes;
+        }
+
+        private static float[] ToInput(Market market, SecurityNames name, int inputCount)
         {
             // cash balance
             // security price
             // security amount
             // cost basis
             // margin holding
+            // bull/bear
             // each security price
 
-            var input = new float[InputCount];
+            // todo - holding for each security, inverted value for stock (low better)
+
+            var input = new float[inputCount];
 
             // each security price
-            var index = 5;
+            var index = 6;
             var maxholding = 1L;
             foreach (var security in Security.EnumerateAll())
             {
@@ -125,6 +141,8 @@ namespace market.bots
 
             // cash balance
             input[0] = (float)market.My.CashBalance / (float)market.Config.InitialCashBalance;
+            if (input[0] > 1f) input[0] = 1f;
+            if (input[0] < -1f) input[0] = -1f;
             // security price
             input[1] = (float)market.Prices.ByName(name) / (float)market.Config.StockSplitPrice;
             // security amount
@@ -133,17 +151,19 @@ namespace market.bots
             input[3] = (float)market.My.CostBasisByName(name) / (float)market.Config.StockSplitPrice;
             // margin holding
             input[4] = market.My.MarginTotalByName(name) / (float)maxholding;
+            // bear (0) / bull (1)
+            input[5] = market.MarketSituation.Market == Situation.Bull ? 1f : 0f;
 
             return input;
         }
 
-        private static List<Transaction> CreateOrder(int[] indexes, NeuralNetwork[] networks, Market market, bool isbuy)
+        private static List<Transaction> CreateOrder(NeuralBotOptions options, int[] indexes, NeuralNetwork[] networks, Market market, bool isbuy)
         {
             // run networks for each security
             var outputs = new NeuralOutput[networks.Length];
             Parallel.For(fromInclusive: 0, toExclusive: networks.Length, (i) =>
             {
-                outputs[i] =networks[i].Evaluate(ToInput(market, (SecurityNames)i));
+                outputs[i] = networks[i].Evaluate(ToInput(market, (SecurityNames)i, networks[i].InputNumber));
             });
 
             // create share transactions
@@ -157,9 +177,10 @@ namespace market.bots
                 var result = (Outputs)outputs[index].Result;
 
                 // inject random choices
-                if (GetZeroBasedRandom(exclusiveTo: 11) < 3) result = (Outputs)GetZeroBasedRandom(OutputCount);
+                if (options.PcntRandomResults > 0 && GetZeroBasedRandom(exclusiveTo: 101) < (int)(100*options.PcntRandomResults)) result = (Outputs)GetZeroBasedRandom(networks[index].OutputNumber);
 
                 // make the selection
+                var onmargin = false;
                 switch (result)
                 {
                     case Outputs.Zero: amount = 0L; break;
@@ -171,11 +192,30 @@ namespace market.bots
                     case Outputs.HundredPercent:
                         amount = (long)Math.Floor((double)cash / (double)price);
                         break;
+                    case Outputs.TenOnMargin:
+                        amount = 10L;
+                        onmargin = true;
+                        break;
+                    case Outputs.TwentyOnMargin: 
+                        amount = 20L;
+                        onmargin = true;
+                        break;
+                    case Outputs.FiftyPercentOnMargin:
+                        amount = (long)Math.Floor((double)cash / (2d * (double)price));
+                        onmargin = true;
+                        break;
+                    case Outputs.HundredPercentOnMargin:
+                        amount = (long)Math.Floor((double)cash / (double)price);
+                        onmargin = true;
+                        break;
                     default: throw new Exception("unknown output");
                 }
 
                 // ensure a round divisor
                 amount -= (amount % market.Config.PurchaseDivisor);
+
+                // check for margin buy rules
+                if (isbuy && (market.Year == 1 || market.Year == market.Config.LastYear) && onmargin) amount = 0;
 
                 // check if we have the cash to purchase
                 var successful = false;
@@ -185,9 +225,10 @@ namespace market.bots
                     {
                         // check if there are cash funds
                         var cost = price * amount;
+                        if (onmargin) cost /= market.Config.MarginSplitRatio;
                         if (cash >= cost)
                         {
-                            transactions.Add(new Transaction() { Security = (SecurityNames)index, Amount = amount });
+                            transactions.Add(new Transaction() { Security = (SecurityNames)index, Amount = amount, OnMargin = onmargin });
                             cash -= cost;
                             successful = true;
                         }
@@ -206,7 +247,7 @@ namespace market.bots
                 }
 
                 // train
-                if (!successful) result = Outputs.Zero;
+                if (!successful || amount == 0) result = Outputs.Zero;
                 networks[index].Learn(outputs[index], (int)result);
             } // foreach index
 

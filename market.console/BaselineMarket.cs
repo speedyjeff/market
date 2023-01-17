@@ -3,14 +3,15 @@ using market.engine;
 
 namespace market.console
 {
-    public static class BaselineMarket
+    static class BaselineMarket
     {
         public static Market RunOnce(MarketConfiguration config, SecurityNames security, BaselinePolicy policy)
         {
             // run the market with the specific policy
             var market = new Market(config);
+            var random = (policy == BaselinePolicy.Random) ? new Random() : null;
 
-            var bot = (policy == BaselinePolicy.NeuralBots) ? new NeuralBot() : null;
+            var bot = (policy == BaselinePolicy.NeuralBots) ? new NeuralBot( new NeuralBotOptions()) : null;
 
             do
             {
@@ -51,10 +52,22 @@ namespace market.console
                         buys = bot.Buy(market);
                         placeOrder = true;
                     }
+                    else if (policy == BaselinePolicy.Random)
+                    {
+                        // choose if a purchase should occur
+                        if (random.Next() % 2 == 0)
+                        {
+                            placeOrder = true;
+                            // choose how many shares
+                            amount = buys[0].Amount;
+                            // ensure round number
+                            amount -= (amount % market.Config.PurchaseDivisor);
+                        }
+                    }
                 }
 
                 // place the order
-                if (!placeOrder) buys.Clear();
+                if (!placeOrder || amount <= 0) buys.Clear();
                 market.BuySecurities(buys);
             }
             while (market.EndYear());
@@ -62,7 +75,79 @@ namespace market.console
             return market;
         }
 
-        public static NeuralBotContainer[] RunIteratively(MarketConfiguration config, int iterations, int keep)
+        public static BaselineStats RunStats(MarketConfiguration config, Options options)
+        {
+            // run iteratively and gather stats
+            var stats = new BaselineStats()
+            {
+                YearsPerIteration = options.LastYear,
+                TotalYears = options.LastYear * options.Iterations
+            };
+            var parvalues = new long[Security.Count];
+            var prevvalues = new long[Security.Count];
+            var rand = new Random();
+
+            for (int i = 0; i < options.Iterations; i++)
+            {
+                // set parvalues to options.ParValue
+                foreach (var security in Security.EnumerateAll())
+                {
+                    parvalues[(int)security.Name] = options.ParValue;
+                    prevvalues[(int)security.Name] = 0;
+                }
+
+                // run the market with the specific policy
+                config.Seed = rand.Next();
+                var market = new Market(config);
+                do
+                {
+                    // start
+                    market.StartYear();
+
+                    // gather stats
+                    foreach (var security in Security.EnumerateAll())
+                    {
+                        // split
+                        if (market.SplitSecurities.Contains(security.Name))
+                        {
+                            // adjust parvalue
+                            parvalues[(int)security.Name] /= 2;
+                            // stats
+                            stats.Split[(int)security.Name]++;
+                        }
+
+                        // worthless
+                        if (market.WorthlesSecurities.Contains(security.Name))
+                        {
+                            // adjust parvalue
+                            parvalues[(int)security.Name] = options.ParValue;
+                            // stats
+                            stats.Worthless[(int)security.Name]++;
+                        }
+
+                        // stats
+                        var price = market.Prices.ByName(security.Name);
+                        if (price > parvalues[(int)security.Name]) stats.AbovePar[(int)security.Name]++;
+                        if (price < parvalues[(int)security.Name]) stats.BelowPar[(int)security.Name]++;
+                        if (prevvalues[(int)security.Name] > 0 && price > prevvalues[(int)security.Name]) stats.Increase[(int)security.Name]++;
+                        if (prevvalues[(int)security.Name] > 0 && price < prevvalues[(int)security.Name]) stats.Decrease[(int)security.Name]++;
+                        if (price <= options.NoDividendPrice || security.Yield <= 0) stats.NoDividend[(int)security.Name]++;
+
+                        // set prevvalues for this security
+                        prevvalues[(int)security.Name] = price;
+                    }
+
+                    // advance
+                    market.SellSecurities(new List<Transaction>());
+                    market.BuySecurities(new List<Transaction>());
+                }
+                while (market.EndYear());
+            }
+
+            return stats;
+        }
+
+        public static NeuralBotContainer[] RunIteratively(MarketConfiguration config, Options options, int keep)
         {
             // run multiple iterations, keeping the best models
             // return n of the best models after iterations
@@ -71,15 +156,24 @@ namespace market.console
             var rand = new Random();
 
             // run each iteration
-            for (int i = 0; i < iterations; i++)
+            for (int i = 0; i < options.Iterations; i++)
             {
-                // change random seed
-                config.Seed = rand.Next();
+                // random seed
+                config.Seed = options.Seed != 0 ? options.Seed : rand.Next();
 
                 // run all models
                 Parallel.For(fromInclusive: 0, toExclusive: bots.Length, (i) =>
                 {
-                    if (bots[i] == null) bots[i] = new NeuralBotContainer();
+                    if (bots[i] == null) bots[i] = new NeuralBotContainer(
+                            new NeuralBotOptions()
+                            {
+                                AllowOnMargin = options.NeuralMargin,
+                                LearningRate = options.NeuralLearingRate,
+                                PcntRandomResults = options.NeuralRandomResults,
+                                ShuffleBuySecurityOrder = !options.NeuralStaticSecurityOrder,
+                                ShuffleSellSecurityOrder = !options.NeuralStaticSecurityOrder
+                            }
+                        );
 
                     // run the market with the specific policy
                     var market = new Market(config);
@@ -112,9 +206,5 @@ namespace market.console
             // keep the first 'keep' bots
             return bots.Take(keep).ToArray();
         }
-
-        #region private
-
-        #endregion
     }
 }

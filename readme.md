@@ -78,6 +78,8 @@ Which accepts a number of configurations to modify the default game play.
  -(wi)thDebugValidation        - turn on internal validation (default not set)
 ```
 
+To try to determine the best strategy a series of [experiments](https://github.com/speedyjeff/market/tree/main/neuralnetwork.md) were run.
+
 #### Setup
 ```
 git submodule init

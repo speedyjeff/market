@@ -50,6 +50,7 @@ namespace market.console
             };
 
             // display settings
+            Console.WriteLine($"Seed                       = {options.Seed}");
             Console.WriteLine($"AdjustStartingPrices       = {options.AdjustStartingPrices}");
             Console.WriteLine($"DividendBasedOnMarketPrice = {options.DividendBasedOnMarketPrice}");
             Console.WriteLine($"InitialCashBalance         = {options.InitialCashBalance}");
@@ -65,12 +66,16 @@ namespace market.console
             Console.WriteLine($"WithDebugValidation        = {options.WithDebugValidation}");
             Console.WriteLine($"Iterations                 = {options.Iterations}");
             Console.WriteLine($"Policy                     = {options.Policy}");
+            Console.WriteLine($"NeuralMargin               = {options.NeuralMargin}");
+            Console.WriteLine($"NeuralLearningRate         = {options.NeuralLearingRate}");
+            Console.WriteLine($"NeuralStaticSecurityOrder  = {options.NeuralStaticSecurityOrder}");
+            Console.WriteLine($"NeuralRandomResults        = {options.NeuralRandomResults}");
             Console.WriteLine();
 
             if (options.Policy == BaselinePolicy.NeuralBots)
             {
                 // get the most productive models
-                var bots = BaselineMarket.RunIteratively(config, options.Iterations, keep: 5);
+                var bots = BaselineMarket.RunIteratively(config, options, keep: 5);
 
                 // display what is found
                 foreach(var b in bots)
@@ -83,6 +88,19 @@ namespace market.console
                     for (int i = 0; i < b.Bot.SellSecurityOrder.Length; i++) Console.Write($"{(SecurityNames)b.Bot.SellSecurityOrder[i]} ");
                     Console.WriteLine();
                     DisplayLedger(b.Market);
+                }
+            }
+            else if (options.Policy == BaselinePolicy.Stats)
+            {
+                // get stats
+                var stats = BaselineMarket.RunStats(config, options);
+
+                // display stats
+                Console.WriteLine("Security\tIncreases\tOneIn1k\tDecrease\tOneIn1k\tAbovePar\tOneIn1k\tBelowPar\tOneIn1k\tSplit\tOneIn1k\tWorthless\tOneIn1k\tNoDividend\tOneIn1k");
+                foreach(var security in Security.EnumerateAll())
+                {
+                    var i = (int)security.Name;
+                    Console.WriteLine($"{security.Name}\t{stats.Increase[i]}\t{Chance(stats.TotalYears,stats.Increase[i])}\t{stats.Decrease[i]}\t{Chance(stats.TotalYears,stats.Decrease[i])}\t{stats.AbovePar[i]}\t{Chance(stats.TotalYears,stats.AbovePar[i])}\t{stats.BelowPar[i]}\t{Chance(stats.TotalYears,stats.BelowPar[i])}\t{stats.Split[i]}\t{Chance(stats.TotalYears,stats.Split[i])}\t{stats.Worthless[i]}\t{Chance(stats.TotalYears,stats.Worthless[i])}\t{stats.NoDividend[i]}\t{Chance(stats.TotalYears,stats.NoDividend[i])}");
                 }
             }
             else
@@ -365,6 +383,11 @@ namespace market.console
         {
             if (value >= 0) return TrimName($" ${value}", length);
             else return TrimName($"-${-1 * value}", length);
+        }
+
+        private static long Chance(long total, long occurrence)
+        {
+            return (long)Math.Ceiling(1000d * ((double)occurrence / (double)total));
         }
         #endregion
     }
