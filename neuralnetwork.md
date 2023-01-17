@@ -91,7 +91,7 @@ The results below are the 5 networks which yielded the highest average networth.
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -206,7 +206,7 @@ Year    Security                Amount  Price   Cost    DivInt  MarginCharges   
 10      United Auto Company     10       $122    $1220   $0      $0              $1600           $0             Sell
 10      United Auto Company     10       $122   -$1220   $0      $0              $380            $0             Buy
 10                              0        $0      $0      $260    $0              $640            $0             DividendAndInterest
-```
+</pre>
 </details>
 
 #### Best strategies (allowing margin)
@@ -220,7 +220,7 @@ The average net worth when buying/selling on margin is ~25% higher than when not
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -540,8 +540,7 @@ Year    Security                Amount  Price   Cost    DivInt  MarginCharges   
 9                               0        $0      $0      $0     -$4400          -$5047           $8660          MarginInterestCharge
 9                               0        $0      $0      $0     -$8660          -$13707          $0             MarginInterestCharge
 10      Tri-City Transport C    20       $84     $1680   $0      $0             -$12027          $0             Sell
-
-```
+</pre>
 </details>
 
 #### Buy and Hold
@@ -560,7 +559,7 @@ Insights:
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -592,7 +591,7 @@ TriCityTransportCompany    AlwaysBuy  $13819  $2600   $30400
 UnitedAutoCompany          AlwaysBuy  $13288  $0      $43820
 UraniumEnterprisesInc      AlwaysBuy  $12223  $0      $45220
 ValleyPowerAndLightCompany AlwaysBuy  $12003  $6300   $22390
-```
+</pre>
 </details>
 
 #### Always buy low
@@ -609,7 +608,7 @@ Insights:
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -641,7 +640,7 @@ TriCityTransportCompany    AlwaysBuyLow    $13601  $3740   $35200
 UnitedAutoCompany          AlwaysBuyLow    $12821  $10     $49080
 UraniumEnterprisesInc      AlwaysBuyLow    $11744  $0      $46460
 ValleyPowerAndLightCompany AlwaysBuyLow    $11683  $4490   $19980
-```
+</pre>
 </details>
 
 ##### Always buy on margin
@@ -657,7 +656,7 @@ Insights:
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -689,7 +688,7 @@ TriCityTransportCompany    AlwaysOnMargin  $13829  $206    $36279
 UnitedAutoCompany          AlwaysOnMargin  $13861  $-4374  $52356
 UraniumEnterprisesInc      AlwaysOnMargin  $13394  $-7279  $65937
 ValleyPowerAndLightCompany AlwaysOnMargin  $12249  $4152   $22139
-```
+</pre>
 </details>
 
 #### Random
@@ -701,7 +700,7 @@ The random bots make all decisions completely randomly.  A not so surprising out
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 AdjustStartingPrices       = False
 DividendBasedOnMarketPrice = False
 InitialCashBalance         = 5000
@@ -934,7 +933,7 @@ Year    Security                Amount  Price   Cost    DivInt  MarginCharges   
 10      Growth Corporation O    10       $121   -$1210   $0      $0              $1190           $0             Buy
 10      Pioneer Mutual Fund     10       $83    -$830    $0      $0              $360            $0             Buy
 10                              0        $0      $0      $350    $0              $710            $0             DividendAndInterest
-```
+</pre>
 </details>
 
 #### Constant seed
@@ -984,7 +983,7 @@ The network had perfect hindsight, as it had played this exact same game 10K tim
 
 <details>
 <summary>full output</summary>
-```
+<pre>
 Seed                       = 123456
 Adjus6StartingPrices       = False
 DividendBasedOnMarketPrice = False
@@ -1206,7 +1205,7 @@ Year    Security                Amount  Price   Cost    DivInt  MarginCharges   
 10      Tri-City Transport C    10       $144    $1440   $0      $0              $1450           $0             Sell
 10      Stryker Drilling Com    20       $61     $1220   $0      $0              $2670           $0             Sell
 10      Stryker Drilling Com    40       $61    -$2440   $0      $0              $230            $0             Buy
-```
+</pre>
 </details>
 
 
